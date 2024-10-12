@@ -1,8 +1,9 @@
 const std = @import("std");
 
-const fileUtils = @import("./utils/file_utils.zig");
-const problemUtils = @import("./utils/problem_utils.zig");
-const problem = @import("./problems/2019/problem1.zig");
+const utils = @import("utils");
+const fileUtils = utils.fileUtils;
+const problemUtils = utils.problemUtils;
+const problem = @import("problems").Problem22019;
 
 pub fn main() void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -14,15 +15,16 @@ pub fn main() void {
     }
     const allocator = gpa.allocator();
 
-    const fileContents = fileUtils.readProblemFile(allocator, 1) catch |err| {
+    const fileContents = fileUtils.readProblemFile(allocator, 2) catch |err| {
         std.debug.print("Unable to read file: {any}\n", .{err});
         return;
     };
     defer allocator.free(fileContents);
 
-    const result = problem.solve(fileContents, problemUtils.ProblemPart.Part2) catch |err| {
+    const result = problem.solve(allocator, fileContents, true) catch |err| {
         std.debug.print("Problem encountered while solving problem: {any}\n", .{err});
         return;
     };
+    defer allocator.free(result);
     std.debug.print("{any}\n", .{result});
 }

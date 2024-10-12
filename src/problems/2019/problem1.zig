@@ -1,5 +1,5 @@
 const std = @import("std");
-const putils = @import("../../utils/problem_utils.zig");
+const putils = @import("utils").problemUtils;
 
 pub fn solve(inputData: []const u8, part: putils.ProblemPart) putils.ProblemError!u64 {
     var iterator = std.mem.splitSequence(u8, inputData, "\n");
@@ -9,7 +9,7 @@ pub fn solve(inputData: []const u8, part: putils.ProblemPart) putils.ProblemErro
         if (value.len == 0) break;
 
         const intValue = std.fmt.parseInt(u64, value, 10) catch {
-            return putils.ProblemError.UnproccessableLine;
+            return putils.ProblemError.UnproccessableElementError;
         };
 
         switch (part) {
