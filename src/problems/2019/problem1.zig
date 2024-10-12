@@ -1,9 +1,7 @@
 const std = @import("std");
+const putils = @import("../../utils/problem_utils.zig");
 
-const ProblemError = error{UnproccessableLine};
-pub const ProblemPart = enum { Part1, Part2 };
-
-pub fn solve(inputData: []const u8, part: ProblemPart) ProblemError!u64 {
+pub fn solve(inputData: []const u8, part: putils.ProblemPart) putils.ProblemError!u64 {
     var iterator = std.mem.splitSequence(u8, inputData, "\n");
     var requiredFuel: u64 = 0;
     while (iterator.next()) |line| {
@@ -11,7 +9,7 @@ pub fn solve(inputData: []const u8, part: ProblemPart) ProblemError!u64 {
         if (value.len == 0) break;
 
         const intValue = std.fmt.parseInt(u64, value, 10) catch {
-            return ProblemError.UnproccessableLine;
+            return putils.ProblemError.UnproccessableLine;
         };
 
         switch (part) {

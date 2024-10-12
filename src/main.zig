@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const fileUtils = @import("./utils/file_utils.zig");
+const problemUtils = @import("./utils/problem_utils.zig");
 const problem = @import("./problems/2019/problem1.zig");
 
 pub fn main() void {
@@ -19,7 +20,7 @@ pub fn main() void {
     };
     defer allocator.free(fileContents);
 
-    const result = problem.solve(fileContents, problem.ProblemPart.Part2) catch |err| {
+    const result = problem.solve(fileContents, problemUtils.ProblemPart.Part2) catch |err| {
         std.debug.print("Problem encountered while solving problem: {any}\n", .{err});
         return;
     };
