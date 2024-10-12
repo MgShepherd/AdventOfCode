@@ -21,10 +21,9 @@ pub fn main() void {
     };
     defer allocator.free(fileContents);
 
-    const result = problem.solve(allocator, fileContents, true) catch |err| {
+    const result = problem.solvePart2(allocator, fileContents, 19690720) catch |err| {
         std.debug.print("Problem encountered while solving problem: {any}\n", .{err});
         return;
     };
-    defer allocator.free(result);
-    std.debug.print("{any}\n", .{result});
+    std.debug.print("{d}\n", .{result});
 }
