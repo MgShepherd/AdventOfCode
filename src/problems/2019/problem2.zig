@@ -37,7 +37,6 @@ pub fn solvePart2(allocator: std.mem.Allocator, inputData: []const u8, comptime 
         @memcpy(modifyableData, startInstructionData);
 
         try processInstructions(modifyableData, nounInput, verbInput);
-
         if (modifyableData[0] == desiredOutput) break;
     }
     return 100 * nounInput + verbInput;
