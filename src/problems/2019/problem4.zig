@@ -3,7 +3,7 @@ const putils = @import("utils").problemUtils;
 
 const NUMBER_LENGTH = 6;
 
-pub fn solve(data: []const u8) putils.ProblemError!u64 {
+pub fn solve(data: []const u8, part: putils.ProblemPart) putils.ProblemError!u64 {
     var iterator = std.mem.splitSequence(u8, data, "-");
 
     const rangeStart = try readNextItemAsInt(iterator.next());
@@ -12,7 +12,7 @@ pub fn solve(data: []const u8) putils.ProblemError!u64 {
     var numValidPasswords: u64 = 0;
     for (rangeStart..rangeEnd) |element| {
         const digitArray = try convertToDigitArray(element);
-        if (doesMeetCriteria(&digitArray)) {
+        if (doesMeetCriteria(&digitArray, part)) {
             numValidPasswords += 1;
         }
     }
@@ -39,15 +39,22 @@ fn convertToDigitArray(element: u64) putils.ProblemError![NUMBER_LENGTH]u8 {
     return digitArray;
 }
 
-fn doesMeetCriteria(digitArray: []const u8) bool {
+fn doesMeetCriteria(digitArray: []const u8, part: putils.ProblemPart) bool {
     var adjacentDigitsSame = false;
 
     for (0..(digitArray.len - 1)) |index| {
         if (digitArray[index] == digitArray[index + 1]) {
-            adjacentDigitsSame = true;
+            if (part != putils.ProblemPart.Part2 or isValidForPart2(digitArray, index)) {
+                adjacentDigitsSame = true;
+            }
         } else if (digitArray[index] > digitArray[index + 1]) {
             return false;
         }
     }
     return adjacentDigitsSame;
+}
+
+fn isValidForPart2(digitArray: []const u8, index: usize) bool {
+    return (index == 0 or digitArray[index] != digitArray[index - 1]) and
+        (index + 2 >= digitArray.len or digitArray[index] != digitArray[index + 2]);
 }

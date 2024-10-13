@@ -6,7 +6,7 @@ const problemUtils = utils.problemUtils;
 const problem = @import("problems").Problem42019;
 
 pub fn main() void {
-    const result = problem.solve("245318-765747") catch |err| {
+    const result = problem.solve("245318-765747", problemUtils.ProblemPart.Part2) catch |err| {
         std.debug.print("Problem encountered while solving problem: {any}\n", .{err});
         return;
     };
