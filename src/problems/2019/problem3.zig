@@ -20,9 +20,22 @@ const Point = struct {
     }
 };
 
-const PointHashSet = std.AutoHashMap(Point, void);
+const StepsPair = struct {
+    steps1: u32,
+    steps2: u32,
 
-pub fn solve(allocator: std.mem.Allocator, inputData: []const u8) putils.ProblemError!u32 {
+    fn init(steps1: u32, steps2: u32) StepsPair {
+        return .{
+            .steps1 = steps1,
+            .steps2 = steps2,
+        };
+    }
+};
+
+const PointHashSet = std.AutoHashMap(Point, u32);
+const PointHashSetMultiValue = std.AutoHashMap(Point, StepsPair);
+
+pub fn solve(allocator: std.mem.Allocator, inputData: []const u8, part: putils.ProblemPart) putils.ProblemError!u32 {
     var iterator = std.mem.splitSequence(u8, inputData, "\n");
 
     const wire1 = try convertToMovements(allocator, iterator.next());
@@ -39,7 +52,10 @@ pub fn solve(allocator: std.mem.Allocator, inputData: []const u8) putils.Problem
         duplicateLocations.deinit();
     }
 
-    return findShortestDistance(&duplicateLocations);
+    if (part == putils.ProblemPart.Part1) {
+        return findShortestDistance(&duplicateLocations);
+    }
+    return findMinSteps(&duplicateLocations);
 }
 
 fn convertToMovements(allocator: std.mem.Allocator, wire: ?[]const u8) putils.ProblemError![]Movement {
@@ -77,13 +93,39 @@ fn convertToMovements(allocator: std.mem.Allocator, wire: ?[]const u8) putils.Pr
 fn getVisitedLocations(allocator: std.mem.Allocator, wire: []Movement) putils.ProblemError!PointHashSet {
     var visitedLocations = PointHashSet.init(allocator);
     var currentLocation = Point.init(0, 0);
+    var numSteps: u32 = 0;
 
     for (wire) |movement| {
+        if (numSteps != 0) numSteps -= 1;
         switch (movement.direction) {
-            Direction.Right => try addHorizontalMovements(&visitedLocations, &currentLocation, movement.distance, true),
-            Direction.Left => try addHorizontalMovements(&visitedLocations, &currentLocation, movement.distance, false),
-            Direction.Up => try addVerticalMovements(&visitedLocations, &currentLocation, movement.distance, true),
-            Direction.Down => try addVerticalMovements(&visitedLocations, &currentLocation, movement.distance, false),
+            Direction.Right => try addHorizontalMovements(
+                &visitedLocations,
+                &currentLocation,
+                movement.distance,
+                true,
+                &numSteps,
+            ),
+            Direction.Left => try addHorizontalMovements(
+                &visitedLocations,
+                &currentLocation,
+                movement.distance,
+                false,
+                &numSteps,
+            ),
+            Direction.Up => try addVerticalMovements(
+                &visitedLocations,
+                &currentLocation,
+                movement.distance,
+                true,
+                &numSteps,
+            ),
+            Direction.Down => try addVerticalMovements(
+                &visitedLocations,
+                &currentLocation,
+                movement.distance,
+                false,
+                &numSteps,
+            ),
         }
     }
     return visitedLocations;
@@ -93,16 +135,46 @@ fn findDuplicateLocations(
     allocator: std.mem.Allocator,
     wire: []Movement,
     existingLocations: *const PointHashSet,
-) putils.ProblemError!PointHashSet {
-    var duplicateLocations = PointHashSet.init(allocator);
+) putils.ProblemError!PointHashSetMultiValue {
+    var duplicateLocations = PointHashSetMultiValue.init(allocator);
     var currentLocation = Point.init(0, 0);
+    var numSteps: u32 = 0;
 
     for (wire) |movement| {
+        if (numSteps != 0) numSteps -= 1;
         switch (movement.direction) {
-            Direction.Right => try searchHorizontalMovements(&duplicateLocations, existingLocations, &currentLocation, movement.distance, true),
-            Direction.Left => try searchHorizontalMovements(&duplicateLocations, existingLocations, &currentLocation, movement.distance, false),
-            Direction.Up => try searchVerticalMovements(&duplicateLocations, existingLocations, &currentLocation, movement.distance, true),
-            Direction.Down => try searchVerticalMovements(&duplicateLocations, existingLocations, &currentLocation, movement.distance, false),
+            Direction.Right => try searchHorizontalMovements(
+                &duplicateLocations,
+                existingLocations,
+                &currentLocation,
+                movement.distance,
+                true,
+                &numSteps,
+            ),
+            Direction.Left => try searchHorizontalMovements(
+                &duplicateLocations,
+                existingLocations,
+                &currentLocation,
+                movement.distance,
+                false,
+                &numSteps,
+            ),
+            Direction.Up => try searchVerticalMovements(
+                &duplicateLocations,
+                existingLocations,
+                &currentLocation,
+                movement.distance,
+                true,
+                &numSteps,
+            ),
+            Direction.Down => try searchVerticalMovements(
+                &duplicateLocations,
+                existingLocations,
+                &currentLocation,
+                movement.distance,
+                false,
+                &numSteps,
+            ),
         }
     }
 
@@ -114,33 +186,38 @@ fn addHorizontalMovements(
     currentLocation: *Point,
     distance: i32,
     increment: bool,
+    numSteps: *u32,
 ) putils.ProblemError!void {
     for (0..@intCast(distance + 1)) |current| {
         const x: i32 = @intCast(current);
         const newX = if (increment) currentLocation.x + x else currentLocation.x - x;
-        visitedLocations.put(Point.init(newX, currentLocation.y), {}) catch {
+        visitedLocations.put(Point.init(newX, currentLocation.y), numSteps.*) catch {
             return putils.ProblemError.MemoryAllocationError;
         };
+        numSteps.* += 1;
     }
     currentLocation.x += if (increment) distance else -distance;
 }
 
 fn searchHorizontalMovements(
-    duplicateLocations: *PointHashSet,
+    duplicateLocations: *PointHashSetMultiValue,
     existingLocations: *const PointHashSet,
     currentLocation: *Point,
     distance: i32,
     increment: bool,
+    numSteps: *u32,
 ) putils.ProblemError!void {
     for (0..@intCast(distance + 1)) |current| {
         const x: i32 = @intCast(current);
         const newX = if (increment) currentLocation.x + x else currentLocation.x - x;
         const point = Point.init(newX, currentLocation.y);
-        if (existingLocations.get(point) != null and !(point.x == 0 and point.y == 0)) {
-            duplicateLocations.put(point, {}) catch {
+        const existingLocation = existingLocations.get(point);
+        if (existingLocation != null and !(point.x == 0 and point.y == 0)) {
+            duplicateLocations.put(point, StepsPair.init(numSteps.*, existingLocation.?)) catch {
                 return putils.ProblemError.MemoryAllocationError;
             };
         }
+        numSteps.* += 1;
     }
     currentLocation.x += if (increment) distance else -distance;
 }
@@ -150,38 +227,43 @@ fn addVerticalMovements(
     currentLocation: *Point,
     distance: i32,
     increment: bool,
+    numSteps: *u32,
 ) putils.ProblemError!void {
     for (0..@intCast(distance + 1)) |current| {
         const y: i32 = @intCast(current);
         const newY = if (increment) currentLocation.y + y else currentLocation.y - y;
-        visitedLocations.put(Point.init(currentLocation.x, newY), {}) catch {
+        visitedLocations.put(Point.init(currentLocation.x, newY), numSteps.*) catch {
             return putils.ProblemError.MemoryAllocationError;
         };
+        numSteps.* += 1;
     }
     currentLocation.y += if (increment) distance else -distance;
 }
 
 fn searchVerticalMovements(
-    duplicateLocations: *PointHashSet,
+    duplicateLocations: *PointHashSetMultiValue,
     existingLocations: *const PointHashSet,
     currentLocation: *Point,
     distance: i32,
     increment: bool,
+    numSteps: *u32,
 ) putils.ProblemError!void {
     for (0..@intCast(distance + 1)) |current| {
         const y: i32 = @intCast(current);
         const newY = if (increment) currentLocation.y + y else currentLocation.y - y;
         const point = Point.init(currentLocation.x, newY);
-        if (existingLocations.get(point) != null and !(point.x == 0 and point.y == 0)) {
-            duplicateLocations.put(Point.init(currentLocation.x, newY), {}) catch {
+        const existingLocation = existingLocations.get(point);
+        if (existingLocation != null and !(point.x == 0 and point.y == 0)) {
+            duplicateLocations.put(Point.init(currentLocation.x, newY), StepsPair.init(numSteps.*, existingLocation.?)) catch {
                 return putils.ProblemError.MemoryAllocationError;
             };
         }
+        numSteps.* += 1;
     }
     currentLocation.y += if (increment) distance else -distance;
 }
 
-fn findShortestDistance(duplicateLocations: *const PointHashSet) u32 {
+fn findShortestDistance(duplicateLocations: *const PointHashSetMultiValue) u32 {
     var keys = duplicateLocations.keyIterator();
     var shortestDistance: u32 = 0;
     while (keys.next()) |key| {
@@ -191,4 +273,16 @@ fn findShortestDistance(duplicateLocations: *const PointHashSet) u32 {
         }
     }
     return shortestDistance;
+}
+
+fn findMinSteps(duplicateLocations: *const PointHashSetMultiValue) u32 {
+    var values = duplicateLocations.valueIterator();
+    var shortestSteps: u32 = 0;
+    while (values.next()) |value| {
+        const totalSteps = value.steps1 + value.steps2;
+        if (shortestSteps == 0 or totalSteps < shortestSteps) {
+            shortestSteps = totalSteps;
+        }
+    }
+    return shortestSteps;
 }
